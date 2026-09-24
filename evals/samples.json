@@ -1,0 +1,59 @@
+{
+  "essays": [
+    {
+      "id": "remote-work",
+      "title": "Remote work",
+      "sentences": [
+        { "text": "Remote work can improve focus for employees whose interruptions are frequent.", "label": "keep" },
+        { "text": "In our six-month pilot, 64% of participants reported fewer interruptions.", "label": "keep" },
+        { "text": "However, new employees missed informal guidance in the same pilot.", "label": "keep" },
+        { "text": "This is a very important point.", "label": "cut" },
+        { "text": "Remote work can improve focus for employees whose interruptions are frequent.", "label": "cut" }
+      ]
+    },
+    {
+      "id": "urban-trees",
+      "title": "Urban trees",
+      "sentences": [
+        { "text": "Urban trees reduce street temperatures during summer afternoons.", "label": "keep" },
+        { "text": "A Phoenix study found a median surface-temperature reduction of 7.2°C near irrigated trees.", "label": "keep" },
+        { "text": "The effect varied with species, water availability, and sidewalk area.", "label": "keep" },
+        { "text": "Wouldn't cooler streets be wonderful?", "label": "cut" },
+        { "text": "Trees make cities cooler.", "label": "cut" }
+      ]
+    },
+    {
+      "id": "product-launch",
+      "title": "Product launch",
+      "sentences": [
+        { "text": "The subscription plan is designed for teams that need predictable monthly billing.", "label": "keep" },
+        { "text": "Usage data from the beta showed that 41% of teams exceeded the included allowance within three months.", "label": "keep" },
+        { "text": "This is a very exciting launch.", "label": "cut" },
+        { "text": "We will therefore offer an overage alert before the next invoice.", "label": "keep" },
+        { "text": "The subscription plan is for teams.", "label": "cut" }
+      ]
+    },
+    {
+      "id": "coastal-flooding",
+      "title": "Coastal flooding",
+      "sentences": [
+        { "text": "Restored wetlands can reduce peak flood levels in small coastal basins.", "label": "keep" },
+        { "text": "Measurements from three restored sites showed peak reductions between 8% and 19%.", "label": "keep" },
+        { "text": "The benefit depends on inlet geometry, vegetation maturity, and storm timing.", "label": "keep" },
+        { "text": "Wetlands are very important for everyone.", "label": "cut" },
+        { "text": "Restored wetlands can reduce flooding.", "label": "cut" }
+      ]
+    },
+    {
+      "id": "study-habits",
+      "title": "Study habits",
+      "sentences": [
+        { "text": "Short retrieval practice can improve recall more than rereading notes.", "label": "keep" },
+        { "text": "In one classroom study, students using retrieval practice scored 18% higher on a delayed quiz.", "label": "keep" },
+        { "text": "Study tips are very powerful.", "label": "cut" },
+        { "text": "Learners should test recall before returning to the source material.", "label": "keep" },
+        { "text": "The effect was smaller when students had not received feedback on practice attempts.", "label": "keep" }
+      ]
+    }
+  ]
+}

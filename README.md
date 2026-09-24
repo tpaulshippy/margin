@@ -6,13 +6,13 @@ Margin is a live, annotation-only writing editor. It scores every sentence after
 
 This repo-relative screen recording shows the working app with Jev connected and a sentence being appended in real time. Select the poster to play the video.
 
-[![Margin annotating a live edit](demo/margin-annotating-poster.png)](demo/margin-annotating.webm?raw=1)
+[![Margin annotating a live edit](demo/margin-annotating-poster.png)](demo/margin-annotating.mp4?raw=1)
 
 ### Heat map and trim mode
 
 This recording shows confidence-opacity heat mapping and trim decisions. Accepting a cut records the decision; it does not modify the essay. Select the poster to play the video.
 
-[![Margin heat map and trim mode](demo/margin-heat-and-trim-poster.png)](demo/margin-heat-and-trim.webm?raw=1)
+[![Margin heat map and trim mode](demo/margin-heat-and-trim-poster.png)](demo/margin-heat-and-trim.mp4?raw=1)
 
 ## What it does
 

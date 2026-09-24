@@ -33,3 +33,15 @@ textarea:focus-visible {
 #root {
   min-height: 100vh;
 }
+
+@media (prefers-color-scheme: dark) {
+  html {
+    background: #0c120f;
+  }
+
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible {
+    outline-color: rgba(117, 214, 170, 0.42);
+  }
+}

@@ -18,6 +18,7 @@ This animated preview and the full video are committed in this repository. It sh
 
 - Splits plain text with `Intl.Segmenter`.
 - Scores `role`, `cut_safety`, `redundancy`, `support`, and `clarity` with a `0–1` confidence for every verdict.
+- Follows the device's light or dark appearance preference.
 - Reconciles unchanged sentences with an LCS diff, then re-scores only changed sentences and their immediate neighbors.
 - Cancels stale requests when typing continues.
 - Colors the heat map by cut safety and uses cut-safety confidence as opacity.

@@ -1,0 +1,73 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout deploy commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Deploy to server
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$SSH_KEY" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+          trap 'rm -f /tmp/deploy_key' EXIT
+
+          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key root@$SERVER_HOST <<'EOF'
+          set -euo pipefail
+          cd /home/margin/repo
+          git pull --ff-only
+          npm ci
+          rm -rf dist.next
+          mkdir -p dist.next
+          EOF
+
+          tar -C dist -cf - . | ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key root@$SERVER_HOST '
+          set -euo pipefail
+          cd /home/margin/repo
+          tar -xf - -C dist.next
+          rm -rf dist
+          mv dist.next dist
+          sudo systemctl restart margin
+          sudo systemctl is-active --quiet margin
+          for attempt in $(seq 1 15); do
+            if curl --fail --silent --show-error --connect-timeout 2 --max-time 5 \
+              -H "Host: margin.syftlearning.app" \
+              http://127.0.0.1:3003/api/config; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+          '

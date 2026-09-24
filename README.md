@@ -91,7 +91,7 @@ Authenticated `GET /v1/models` returned HTTP `200` for the supplied key and list
 
 ## Privacy boundary
 
-The editor and annotation history remain in browser memory. The local Vite API receives sentence strings, their zero-based indices, and the current sentence array needed for redundancy and support context. It sends sentence text to the selected scoring provider—no editor storage, replacement text, export history, or unrelated application state.
+The editor and annotation history remain in browser memory. The local Vite API receives the current document's sentence strings, their zero-based indices, and the target sentences needed for scoring. The current document is sent to the selected scoring provider for analysis—no editor storage, replacement text, export history, or unrelated application state.
 
 Only changed sentences and immediate neighbors are re-scored. Unchanged scores are reconciled locally. The full current sentence array is used as model context because redundancy and support can depend on earlier sentences.
 

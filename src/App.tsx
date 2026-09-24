@@ -5,7 +5,7 @@ import { buildJsonExport, buildMarkdownExport } from './lib/export'
 import { buildTrimPlan, type TrimDecision } from './lib/trim'
 import './App.css'
 
-const sampleText = `Remote work can improve focus for some employees. In our six-month pilot, 64% of participants reported fewer interruptions. However, the same pilot found that new employees missed informal guidance. That tension matters because remote policies often optimize for experienced staff. That is important. In other words, flexibility helps some people and isolates others. Future studies should measure onboarding outcomes separately from productivity. The results are promising.`
+const sampleText = `Remote work can improve focus when teams have clear communication norms. In our six-month pilot, 64% of participants reported fewer interruptions. However, new employees missed informal guidance more often. Remote work always makes every team more productive. This is important. In other words, remote work can improve focus when teams have clear communication norms. The results were unclear. Future studies should measure onboarding outcomes separately from productivity.`
 
 const cutClass = {
   essential: 'essential',
@@ -328,7 +328,7 @@ function App() {
           </div>
         </div>
         <div className="topbar-actions">
-          <div className="local-badge"><span /> Local text</div>
+          <div className="local-badge"><span /> In-memory text</div>
           <button type="button" className="button button-quiet" onClick={exportMarkdown}>
             <DownloadIcon /> Markdown
           </button>
@@ -345,7 +345,7 @@ function App() {
             <h1>See the margin<br />while you write.</h1>
           </div>
           <div className="intro-copy">
-            <p>Margin scores each sentence after you pause. Your words stay in this browser; only sentence text is sent to your configured scoring provider.</p>
+            <p>Margin scores each sentence after you pause. Your document is sent to the configured scoring provider for analysis; Margin keeps it in memory only.</p>
             <div className="provider-row">
               <span className={`status-dot ${provider ? 'status-ready' : ''}`} />
               <span>{provider ? `${provider === 'jev' ? 'Jev' : 'LLM'} connected` : 'Connecting to provider'}</span>

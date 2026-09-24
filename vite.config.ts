@@ -6,5 +6,8 @@ export default defineConfig(({ mode }) => {
   Object.assign(process.env, loadEnv(mode, process.cwd(), ''))
   return {
     plugins: [react(), scoringApiPlugin()],
+    preview: {
+      allowedHosts: ['margin.syftlearning.app'],
+    },
   }
 })

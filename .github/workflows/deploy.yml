@@ -59,15 +59,35 @@ jobs:
           tar -xf - -C dist.next
           rm -rf dist
           mv dist.next dist
-          sudo systemctl restart margin
-          sudo systemctl is-active --quiet margin
-          for attempt in $(seq 1 15); do
-            if curl --fail --silent --show-error --connect-timeout 2 --max-time 5 \
+          if ! sudo systemctl restart margin; then
+            echo "Margin service failed to restart."
+            sudo systemctl status --no-pager margin || true
+            sudo journalctl --unit margin --no-pager -n 100 || true
+            exit 1
+          fi
+
+          ready=0
+          for attempt in $(seq 1 30); do
+            if ! sudo systemctl is-active --quiet margin; then
+              echo "Margin service stopped while waiting for readiness (attempt ${attempt})."
+              sudo systemctl status --no-pager margin || true
+              sudo journalctl --unit margin --no-pager -n 100 || true
+              exit 1
+            fi
+            if curl --fail --silent --output /dev/null --connect-timeout 2 --max-time 5 \
               -H "Host: margin.syftlearning.app" \
               http://127.0.0.1:3003/api/config; then
-              exit 0
+              ready=1
+              break
             fi
             sleep 2
           done
-          exit 1
+
+          if [ "$ready" -ne 1 ]; then
+            echo "Margin did not become ready at http://127.0.0.1:3003/api/config."
+            sudo systemctl status --no-pager margin || true
+            sudo journalctl --unit margin --no-pager -n 100 || true
+            exit 1
+          fi
+          exit 0
           '

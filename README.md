@@ -1,6 +1,6 @@
 # Margin
 
-Margin is a live, annotation-only writing editor. It scores every sentence after a 300 ms typing pause and aligns the results beside the original text. Margin never writes, paraphrases, rewrites, or suggests replacement text.
+Margin is a live, annotation-led writing editor. It scores every sentence after a 300 ms typing pause and aligns the results beside the current text. It never rewrites or suggests replacement text; accepting a trim removes only the selected sentence.
 
 ### Live annotation
 
@@ -10,7 +10,7 @@ This animated preview and the full video are committed in this repository. It sh
 
 ### Heat map and trim mode
 
-This animated preview and the full video are committed in this repository. It shows confidence-opacity heat mapping and trim decisions. Accepting a cut records the decision; it does not modify the essay. Select the preview to open the full-size MP4.
+This animated preview and the full video are committed in this repository. It shows confidence-opacity heat mapping and trim decisions. Accepting a cut removes that sentence from the essay. Select the preview to open the full-size MP4.
 
 [![Animated preview of Margin heat map and trim mode](demo/margin-heat-and-trim-preview.gif)](demo/margin-heat-and-trim.mp4?raw=1)
 
@@ -23,7 +23,7 @@ This animated preview and the full video are committed in this repository. It sh
 - Cancels stale requests when typing continues.
 - Colors the heat map by cut safety and uses cut-safety confidence as opacity.
 - Builds a trim plan from cuttable sentences, ranked by ascending confidence-weighted importance.
-- Records accept/reject decisions without editing the source text.
+- Applies accepted sentence cuts and records keep decisions without changing unselected text.
 - Exports aligned Markdown and a JSON score file.
 - Drops malformed provider results instead of displaying an unvalidated verdict.
 
@@ -104,7 +104,7 @@ Only changed sentences and immediate neighbors are re-scored. Unchanged scores a
 - `server/api.ts` is the same-origin Vite API boundary; API keys remain server-side.
 - `src/lib/sentences.ts` uses `Intl.Segmenter`, LCS reconciliation, and neighbor expansion.
 - `src/hooks/useIncrementalScoring.ts` owns the 300 ms debounce, stale-request cancellation, and score replacement.
-- `src/lib/trim.ts` computes the transparent cut plan without changing text.
+- `src/lib/trim.ts` computes the transparent cut plan; accepted decisions are applied through the normal text update path.
 
 Jev does not expose an Noul confidence value, so support uses a two-option Choice (`n/a` or `unsupported_claim`) rather than a Noul. Sentence 0's redundancy is deterministically `none` with confidence `1.0` because no earlier sentence exists.
 

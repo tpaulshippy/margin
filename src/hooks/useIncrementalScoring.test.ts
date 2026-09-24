@@ -80,6 +80,50 @@ describe('useIncrementalScoring', () => {
     expect(result.current.annotations.map(({ index }) => index)).toEqual([0, 1, 2])
   })
 
+  it('reconciles existing scores when a sentence is removed', async () => {
+    const requestedDocuments: string[][] = []
+    vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      if (String(input) === '/api/config') {
+        return new Response(JSON.stringify({ provider: 'jev' }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      }
+      const request = JSON.parse(String(init?.body)) as ScoringRequest
+      requestedDocuments.push(request.document)
+      return new Response(JSON.stringify({
+        provider: 'jev',
+        annotations: request.sentences.map(({ index }) => annotation(index)),
+      }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    }))
+
+    const { result } = renderHook(() => useIncrementalScoring('One. Two. Three. Four.', 300))
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(301)
+    })
+    expect(result.current.annotations.map(({ index }) => index)).toEqual([0, 1, 2, 3])
+
+    act(() => result.current.updateText('Two. Three. Four.'))
+    expect(result.current.text).toBe('Two. Three. Four.')
+    expect(result.current.sentences).toEqual(['Two.', 'Three.', 'Four.'])
+    expect(result.current.annotations.map(({ index }) => index)).toEqual([2])
+    expect(result.current.pendingIndices).toEqual([0, 1])
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(301)
+    })
+
+    expect(requestedDocuments).toEqual([
+      ['One.', 'Two.', 'Three.', 'Four.'],
+      ['Two.', 'Three.', 'Four.'],
+    ])
+    expect(result.current.annotations.map(({ index }) => index)).toEqual([0, 1, 2])
+  })
+
   it('retries sentences omitted from a partial response', async () => {
     const requestedTargets = mockScoreApi((call, indices) => call === 0
       ? [annotation(indices[0])]

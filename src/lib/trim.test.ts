@@ -34,10 +34,10 @@ describe('buildTrimPlan', () => {
       sentences: ['One two three four.', 'Five six seven eight.'],
       annotations: [annotation(0, 0.4), annotation(1, 0.6)],
       targetWords: 4,
-      decisions: { 0: 'rejected' },
+      decisions: { 0: 'accepted', 1: 'rejected' },
     })
 
-    expect(plan.selectedIndices).toEqual([1])
+    expect(plan.selectedIndices).toEqual([0])
     expect(plan.projectedWords).toBe(4)
     expect(plan.reachesTarget).toBe(true)
   })

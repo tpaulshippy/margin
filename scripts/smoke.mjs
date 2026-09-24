@@ -17,9 +17,19 @@ await page.getByRole('button', { name: 'Edit text' }).click()
 const before = await page.getByLabel('Essay text').inputValue()
 await page.getByRole('button', { name: 'Open trim mode' }).click()
 const accept = page.getByRole('button', { name: 'Accept cut' }).first()
-if (await accept.isVisible()) await accept.click()
-const after = await page.getByLabel('Essay text').inputValue()
-if (before !== after) throw new Error('Accepting a cut changed editor text.')
+const trimmed = await accept.isVisible()
+let expectedSentenceCount = 8
+if (trimmed) {
+  const candidateText = await page.locator('.trim-item').first().locator('.trim-item-copy p').textContent()
+  if (!candidateText) throw new Error('Trim candidate did not include sentence text.')
+  await accept.click()
+  const after = await page.getByLabel('Essay text').inputValue()
+  expectedSentenceCount = 7
+  if (after === before || after.includes(candidateText)) {
+    throw new Error('Accepting a cut did not remove the selected sentence.')
+  }
+  await page.waitForFunction(() => document.querySelector('.score-count')?.textContent === '7/7 scored', undefined, { timeout: 120_000 })
+}
 const [markdownDownload] = await Promise.all([
   page.waitForEvent('download'),
   page.getByRole('button', { name: 'Markdown' }).click(),
@@ -32,7 +42,7 @@ const [jsonDownload] = await Promise.all([
 ])
 const jsonPath = await jsonDownload.path()
 const json = JSON.parse(await readFile(jsonPath, 'utf8'))
-if (json.scores?.length !== 8) throw new Error('JSON export is invalid.')
+if (json.scores?.length !== expectedSentenceCount) throw new Error('JSON export is invalid.')
 await page.setViewportSize({ width: 390, height: 844 })
 if (await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)) throw new Error('Mobile layout overflows horizontally.')
 await page.emulateMedia({ colorScheme: 'dark' })

@@ -223,7 +223,7 @@ function TrimPanel({
         </span>
       </div>
       <p className="trim-note">
-        Ranked by cut-safety confidence. Accepting records a decision only; Margin never changes your text.
+        Ranked by cut-safety confidence. Accepting a cut removes that sentence from the essay and re-scores its neighbors.
       </p>
       <div className="trim-list">
         {plan.candidates.length === 0 && (
@@ -291,6 +291,21 @@ function App() {
   }, [sentences])
 
   const updateDecision = (index: number, decision: TrimDecision) => {
+    if (decision === 'accepted') {
+      const nextSentences = sentences.filter((_, sentenceIndex) => sentenceIndex !== index)
+      const nextDecisions = Object.fromEntries(
+        Object.entries(decisions)
+          .filter(([decisionIndex, status]) => Number(decisionIndex) !== index && status === 'rejected')
+          .map(([decisionIndex, status]) => {
+            const previousIndex = Number(decisionIndex)
+            return [String(previousIndex > index ? previousIndex - 1 : previousIndex), status]
+          }),
+      )
+      setDecisions(nextDecisions)
+      decisionText.current = Object.fromEntries(nextSentences.map((sentence, nextIndex) => [nextIndex, sentence]))
+      updateText(nextSentences.join(' '))
+      return
+    }
     setDecisions((current) => ({ ...current, [index]: decision }))
   }
 
@@ -426,7 +441,7 @@ function App() {
         )}
 
         <footer className="page-footer">
-          <span>Margin never writes, rewrites, or suggests replacement text.</span>
+          <span>Margin never rewrites or suggests replacement text.</span>
           <span>Scores are signals, not verdicts.</span>
         </footer>
       </main>

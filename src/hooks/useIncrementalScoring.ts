@@ -75,6 +75,12 @@ export function useIncrementalScoring(initialText: string, debounceMs = 300): In
         })
           .then(async (response) => {
             if (!response.ok) {
+              if (response.status === 429) {
+                const retryAfterSeconds = Number(response.headers.get('retry-after'))
+                throw new Error(retryAfterSeconds > 0
+                  ? `Scoring is temporarily rate limited. Try again in ${Math.ceil(retryAfterSeconds)} seconds.`
+                  : 'Scoring is temporarily rate limited. Try again shortly.')
+              }
               throw new Error('Scoring request failed.')
             }
             return response.json() as Promise<ScoringResponse>

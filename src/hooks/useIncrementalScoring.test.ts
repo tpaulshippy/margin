@@ -120,4 +120,27 @@ describe('useIncrementalScoring', () => {
     expect(result.current.pendingIndices).toEqual([])
     expect(result.current.error).toBe('1 sentence result was dropped because no valid score was returned.')
   })
+
+  it('reports the server retry delay when scoring is rate limited', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
+      if (String(input) === '/api/config') {
+        return new Response(JSON.stringify({ provider: 'jev' }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      }
+      return new Response(JSON.stringify({ error: 'Too many scoring requests.' }), {
+        status: 429,
+        headers: { 'content-type': 'application/json', 'retry-after': '12' },
+      })
+    }))
+
+    const { result } = renderHook(() => useIncrementalScoring('One. Two.', 300))
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(301)
+    })
+
+    expect(result.current.error).toBe('Scoring is temporarily rate limited. Try again in 12 seconds.')
+  })
 })

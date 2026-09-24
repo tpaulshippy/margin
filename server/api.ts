@@ -4,6 +4,68 @@ import { scoringRequestSchema } from '../src/core/schema.js'
 import { configuredProviderName, createScoringProvider } from './providers/index.js'
 
 const maximumBodyBytes = 1_000_000
+const scoreRequestLimit = 30
+const scoreRequestWindowMs = 60_000
+
+interface RateLimitEntry {
+  count: number
+  resetAt: number
+}
+
+interface RateLimitResult {
+  allowed: boolean
+  remaining: number
+  resetAt: number
+  retryAfterSeconds: number
+}
+
+const scoreRateLimits = new Map<string, RateLimitEntry>()
+
+function requestClientKey(request: IncomingMessage): string {
+  const forwarded = request.headers['x-forwarded-for']
+  const forwardedAddress = Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(',')[0]
+  return forwardedAddress?.trim() || request.socket.remoteAddress || 'unknown'
+}
+
+function consumeScoreRequest(request: IncomingMessage, now = Date.now()): RateLimitResult {
+  if (scoreRateLimits.size > 10_000) {
+    for (const [key, entry] of scoreRateLimits) {
+      if (entry.resetAt <= now) {
+        scoreRateLimits.delete(key)
+      }
+    }
+  }
+
+  const key = requestClientKey(request)
+  const current = scoreRateLimits.get(key)
+  if (!current || current.resetAt <= now) {
+    const resetAt = now + scoreRequestWindowMs
+    scoreRateLimits.set(key, { count: 1, resetAt })
+    return { allowed: true, remaining: scoreRequestLimit - 1, resetAt, retryAfterSeconds: 0 }
+  }
+  if (current.count >= scoreRequestLimit) {
+    return {
+      allowed: false,
+      remaining: 0,
+      resetAt: current.resetAt,
+      retryAfterSeconds: Math.max(1, Math.ceil((current.resetAt - now) / 1000)),
+    }
+  }
+
+  current.count += 1
+  return {
+    allowed: true,
+    remaining: scoreRequestLimit - current.count,
+    resetAt: current.resetAt,
+    retryAfterSeconds: 0,
+  }
+}
+
+function setRateLimitHeaders(response: ServerResponse, result: RateLimitResult): void {
+  response.setHeader('x-ratelimit-limit', String(scoreRequestLimit))
+  response.setHeader('x-ratelimit-remaining', String(result.remaining))
+  response.setHeader('x-ratelimit-reset', String(Math.ceil(result.resetAt / 1000)))
+}
 
 function sendJson(response: ServerResponse, status: number, body: unknown): void {
   response.statusCode = status
@@ -29,6 +91,14 @@ async function handleScore(request: IncomingMessage, response: ServerResponse): 
   if (request.method !== 'POST') {
     response.setHeader('allow', 'POST')
     sendJson(response, 405, { error: 'Method not allowed.' })
+    return
+  }
+
+  const rateLimit = consumeScoreRequest(request)
+  setRateLimitHeaders(response, rateLimit)
+  if (!rateLimit.allowed) {
+    response.setHeader('retry-after', String(rateLimit.retryAfterSeconds))
+    sendJson(response, 429, { error: 'Too many scoring requests. Please try again later.' })
     return
   }
 

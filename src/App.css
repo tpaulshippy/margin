@@ -889,6 +889,20 @@ main {
   text-transform: uppercase;
 }
 
+.github-link {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.github-link:hover {
+  color: var(--green);
+}
+
+.github-link:focus-visible {
+  outline: 3px solid rgba(47, 118, 91, 0.3);
+  outline-offset: 2px;
+}
+
 @media (max-width: 1050px) {
   .workspace {
     grid-template-columns: 1fr;

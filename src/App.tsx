@@ -443,6 +443,14 @@ function App() {
         <footer className="page-footer">
           <span>Margin never rewrites or suggests replacement text.</span>
           <span>Scores are signals, not verdicts.</span>
+          <a
+            className="github-link"
+            href="https://github.com/tpaulshippy/margin"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View source on GitHub
+          </a>
         </footer>
       </main>
     </div>

@@ -10,6 +10,8 @@ page.on('console', (message) => {
 })
 page.on('pageerror', (error) => errors.push(error.message))
 await page.goto(baseUrl, { waitUntil: 'networkidle' })
+const githubLink = page.getByRole('link', { name: 'View source on GitHub' })
+if (await githubLink.getAttribute('href') !== 'https://github.com/tpaulshippy/margin') throw new Error('GitHub link is invalid.')
 await page.waitForFunction(() => document.querySelector('.score-count')?.textContent === '8/8 scored', undefined, { timeout: 120_000 })
 await page.getByRole('button', { name: 'Heat map' }).click()
 if (await page.locator('.heat-sentence').count() !== 8) throw new Error('Heat map did not render eight sentences.')

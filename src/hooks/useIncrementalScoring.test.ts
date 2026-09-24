@@ -14,6 +14,30 @@ function annotation(index: number): SentenceAnnotation {
   }
 }
 
+function mockScoreApi(
+  annotationsForCall: (call: number, indices: number[]) => SentenceAnnotation[],
+): number[][] {
+  const requestedTargets: number[][] = []
+  const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+    if (String(input) === '/api/config') {
+      return new Response(JSON.stringify({ provider: 'jev' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    }
+    const request = JSON.parse(String(init?.body)) as ScoringRequest
+    const indices = request.sentences.map(({ index }) => index)
+    const annotations = annotationsForCall(requestedTargets.length, indices)
+    requestedTargets.push(indices)
+    return new Response(JSON.stringify({ provider: 'jev', annotations }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    })
+  })
+  vi.stubGlobal('fetch', fetchMock)
+  return requestedTargets
+}
+
 describe('useIncrementalScoring', () => {
   beforeEach(() => {
     vi.useFakeTimers()
@@ -54,5 +78,46 @@ describe('useIncrementalScoring', () => {
     })
 
     expect(result.current.annotations.map(({ index }) => index)).toEqual([0, 1, 2])
+  })
+
+  it('retries sentences omitted from a partial response', async () => {
+    const requestedTargets = mockScoreApi((call, indices) => call === 0
+      ? [annotation(indices[0])]
+      : indices.map((index) => annotation(index)))
+
+    const { result } = renderHook(() => useIncrementalScoring('One. Two.', 300))
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(301)
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+
+    expect(requestedTargets).toEqual([[0, 1], [1]])
+    expect(result.current.annotations.map(({ index }) => index)).toEqual([0, 1])
+    expect(result.current.pendingIndices).toEqual([])
+    expect(result.current.error).toBeNull()
+  })
+
+  it('reports a persistent omission after bounded retries', async () => {
+    const requestedTargets = mockScoreApi(() => [annotation(0)])
+
+    const { result } = renderHook(() => useIncrementalScoring('One. Two.', 300))
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(301)
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+
+    expect(requestedTargets).toEqual([[0, 1], [1], [1]])
+    expect(result.current.annotations.map(({ index }) => index)).toEqual([0])
+    expect(result.current.pendingIndices).toEqual([])
+    expect(result.current.error).toBe('1 sentence result was dropped because no valid score was returned.')
   })
 })

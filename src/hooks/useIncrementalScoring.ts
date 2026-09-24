@@ -8,6 +8,9 @@ interface ScoringResponse {
   annotations?: unknown
 }
 
+const missingScoreRetries = 2
+const missingScoreRetryDelayMs = 750
+
 export interface IncrementalScoringState {
   text: string
   updateText: (text: string) => void
@@ -54,57 +57,76 @@ export function useIncrementalScoring(initialText: string, debounceMs = 300): In
       return
     }
 
-    const targetSet = new Set(targetIndices)
     const version = requestVersion.current
     timer.current = setTimeout(() => {
-      const controller = new AbortController()
-      activeRequest.current = controller
-      const targets = targetIndices.map((index) => ({ index, text: currentSentences[index] }))
+      const attemptRequest = (attempt: number, outstandingIndices: readonly number[]) => {
+        const controller = new AbortController()
+        activeRequest.current = controller
+        const targets = outstandingIndices.map((index) => ({ index, text: currentSentences[index] }))
 
-      void fetch('/api/score', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          sentences: targets,
-          document: currentSentences,
-        }),
-        signal: controller.signal,
-      })
-        .then(async (response) => {
-          if (!response.ok) {
-            throw new Error('Scoring request failed.')
-          }
-          return response.json() as Promise<ScoringResponse>
+        void fetch('/api/score', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            sentences: targets,
+            document: currentSentences,
+          }),
+          signal: controller.signal,
         })
-        .then((body) => {
-          if (version !== requestVersion.current) {
-            return
-          }
-          if (body.provider === 'jev' || body.provider === 'llm') {
-            setProvider(body.provider)
-          }
-          const valid = sanitizeAnnotations(body.annotations, targetIndices)
-          setAnnotations((current) => {
-            const next = [
-              ...current.filter(({ index }) => !targetSet.has(index)),
-              ...valid,
-            ].sort((left, right) => left.index - right.index)
-            previousAnnotations.current = next
-            return next
+          .then(async (response) => {
+            if (!response.ok) {
+              throw new Error('Scoring request failed.')
+            }
+            return response.json() as Promise<ScoringResponse>
           })
-          setPendingIndices([])
-          const dropped = targetIndices.length - valid.length
-          setError(dropped > 0
-            ? `${dropped} sentence result${dropped === 1 ? ' was' : 's were'} dropped because no valid score was returned.`
-            : null)
-        })
-        .catch((reason: unknown) => {
-          if (controller.signal.aborted || version !== requestVersion.current) {
-            return
-          }
-          setPendingIndices([])
-          setError(reason instanceof Error ? reason.message : 'Scoring request failed.')
-        })
+          .then((body) => {
+            if (version !== requestVersion.current) {
+              return
+            }
+            if (body.provider === 'jev' || body.provider === 'llm') {
+              setProvider(body.provider)
+            }
+            const valid = sanitizeAnnotations(body.annotations, outstandingIndices)
+            const returnedIndices = new Set(valid.map(({ index }) => index))
+            const missingIndices = outstandingIndices.filter((index) => !returnedIndices.has(index))
+            setAnnotations((current) => {
+              const next = [
+                ...current.filter(({ index }) => !returnedIndices.has(index)),
+                ...valid,
+              ].sort((left, right) => left.index - right.index)
+              previousAnnotations.current = next
+              return next
+            })
+            if (missingIndices.length === 0) {
+              setPendingIndices([])
+              setError(null)
+              return
+            }
+            if (attempt < missingScoreRetries) {
+              setPendingIndices(missingIndices)
+              setError(null)
+              timer.current = setTimeout(
+                () => attemptRequest(attempt + 1, missingIndices),
+                missingScoreRetryDelayMs,
+              )
+              return
+            }
+            setPendingIndices([])
+            const dropped = missingIndices.length
+            setError(dropped > 0
+              ? `${dropped} sentence result${dropped === 1 ? ' was' : 's were'} dropped because no valid score was returned.`
+              : null)
+          })
+          .catch((reason: unknown) => {
+            if (controller.signal.aborted || version !== requestVersion.current) {
+              return
+            }
+            setPendingIndices([])
+            setError(reason instanceof Error ? reason.message : 'Scoring request failed.')
+          })
+      }
+
+      attemptRequest(0, targetIndices)
     }, debounceMs)
   }, [debounceMs])
 
